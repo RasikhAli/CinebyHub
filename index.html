@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="CinebyHub — Discover and stream movies, TV shows, anime and live channels. Powered by Cineby & TMDB." />
+  <meta name="keywords" content="movies, tv shows, anime, streaming, cineby, watch free" />
+  <title>CinebyHub — Movies, TV Shows & Anime</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+
+      <a href="#" class="brand" id="brandHome">
+        <div class="brand-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </div>
+        <span class="brand-name">CinebyHub</span>
+      </a>
+
+      <!-- CONTENT TABS -->
+      <nav class="content-tabs" id="contentTabs" role="tablist">
+        <button class="content-tab active" data-tab="movies" id="tab-movies" role="tab" aria-selected="true">
+          <span class="tab-icon">🎬</span>
+          <span class="tab-label">Movies</span>
+          <span class="tab-count" id="cnt-movies">—</span>
+        </button>
+        <button class="content-tab" data-tab="tvshows" id="tab-tvshows" role="tab" aria-selected="false">
+          <span class="tab-icon">📺</span>
+          <span class="tab-label">TV Shows</span>
+          <span class="tab-count" id="cnt-tvshows">—</span>
+        </button>
+        <button class="content-tab" data-tab="anime-series" id="tab-anime-series" role="tab" aria-selected="false">
+          <span class="tab-icon">🎌</span>
+          <span class="tab-label">Anime</span>
+          <span class="tab-count" id="cnt-anime-series">—</span>
+        </button>
+        <button class="content-tab" data-tab="anime-movies" id="tab-anime-movies" role="tab" aria-selected="false">
+          <span class="tab-icon">✨</span>
+          <span class="tab-label">Anime Films</span>
+          <span class="tab-count" id="cnt-anime-movies">—</span>
+        </button>
+        <button class="content-tab" data-tab="channels" id="tab-channels" role="tab" aria-selected="false">
+          <span class="tab-icon">📡</span>
+          <span class="tab-label">Channels</span>
+          <span class="tab-count" id="cnt-channels">—</span>
+        </button>
+      </nav>
+
+      <!-- SEARCH -->
+      <div class="nav-search">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search titles, genres…"
+          autocomplete="off" />
+        <button class="search-clear" id="searchClear" title="Clear">✕</button>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="nav-actions">
+        <div class="view-toggle">
+          <button class="view-btn active" id="gridViewBtn" title="Grid view">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </button>
+          <button class="view-btn" id="listViewBtn" title="List view">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <span class="theme-icon-dark">🌙</span>
+          <span class="theme-icon-light">☀️</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ HERO ═══════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot"></span>
+        Powered by TMDB & Cineby
+      </div>
+      <h1 id="heroTitle">Your Gateway to Unlimited Entertainment</h1>
+      <p id="heroSubtitle">Discover thousands of movies, TV shows, anime and live channels. One click to stream.</p>
+
+      <div class="hero-stats" id="heroStats">
+        <div class="stat-pill">
+          <span class="stat-num" id="statMovies">—</span>
+          <span class="stat-lbl">Movies</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-pill">
+          <span class="stat-num" id="statTV">—</span>
+          <span class="stat-lbl">TV Shows</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-pill">
+          <span class="stat-num" id="statAnime">—</span>
+          <span class="stat-lbl">Anime</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-pill">
+          <span class="stat-num" id="statChannels">—</span>
+          <span class="stat-lbl">Channels</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ TOOLBAR ═══════════════ -->
+  <div class="toolbar-wrapper" id="toolbar">
+    <div class="toolbar">
+      <div class="genre-scroll" id="genreFilters">
+        <button class="genre-btn active" data-genre="all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          </svg>
+          All
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <select class="sort-select" id="sortSelect">
+          <option value="default">⭐ By Rating</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+          <option value="popularity">🔥 Popularity</option>
+          <option value="newest">📅 Newest</option>
+        </select>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <main class="main-content">
+    <div id="loader" class="loader-wrap">
+      <div class="loader-ring">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <p class="loader-text">Loading content library…</p>
+      <p class="loader-sub" id="loaderSub">Reading Excel database</p>
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="empty-icon">🎭</div>
+      <h2>Nothing Found</h2>
+      <p>Try a different search term or genre filter.</p>
+      <button class="btn-reset" onclick="resetFilters()">Reset Filters</button>
+    </div>
+
+    <div id="movieGrid" class="movie-grid"></div>
+
+    <div id="paginationWrap" class="pagination-wrap" style="display:none">
+      <button class="pag-btn" id="paginationPrev" disabled>← Prev</button>
+      <span class="pag-info" id="paginationInfo"></span>
+      <button class="pag-btn" id="paginationNext">Next →</button>
+    </div>
+  </main>
+
+  <!-- ═══════════════ BACK TO TOP ═══════════════ -->
+  <button class="back-to-top" id="backToTop" title="Back to top">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.5">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+
+  <!-- ═══════════════ MODAL ═══════════════ -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="closeModal" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+
+</html>
