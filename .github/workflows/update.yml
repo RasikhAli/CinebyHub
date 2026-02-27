@@ -1,6 +1,9 @@
 name: Update Content and Deploy
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '0 */12 * * *' # Every 12 hours
   workflow_dispatch:      # Manual trigger
