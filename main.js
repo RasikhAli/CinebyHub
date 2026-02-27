@@ -104,7 +104,7 @@ listViewBtn.onclick = () => {
 // ══════════════════════════════════════════════════════════
 async function loadData() {
   // Primary file: cineby_content.xlsx (linkvertise_api_lite.py writes LV links into it)
-  const files = ['/cineby_content.xlsx'];
+  const files = ['cineby_content.xlsx'];
   let buf = null;
   let usedFile = '';
 
