@@ -24,8 +24,8 @@ from datetime import datetime
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIG — paste your credentials here, OR let the script ask you at runtime
 # ─────────────────────────────────────────────────────────────────────────────
-TMDB_API_KEY        = "b321c5e37409b6dc6d4322fa5356a7f5"   # ← paste your API key here  (optional if using token)
-TMDB_READ_TOKEN     = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiMzIxYzVlMzc0MDliNmRjNmQ0MzIyZmE1MzU2YTdmNSIsIm5iZiI6MTc3MTk4MTE5My44OTc5OTk4LCJzdWIiOiI2OTllNDk4OTI0YTdkYWIxNTdmMjI4ZmIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.7me0gkhr6ST4oGvAoibawLYAuL7bbssRBAB6VQmsFB0"   # ← paste your Read Access Token here  (recommended)
+TMDB_API_KEY    = os.getenv("TMDB_API_KEY", "b321c5e37409b6dc6d4322fa5356a7f5")
+TMDB_READ_TOKEN = os.getenv("TMDB_READ_TOKEN", "eyJhdWQiOiJiMzIxYzVlMzc0MDliNmRjNmQ0MzIyZmE1MzU2YTdmNSIsIm5iZiI6MTc3MTk4MTE5My44OTc5OTk4LCJzdWIiOiI2OTllNDk4OTI0YTdkYWIxNTdmMjI4ZmIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0")
 
 # ── Auto-load from .env file if present ───────────────────────────────────────
 def _load_env():
@@ -39,6 +39,7 @@ def _load_env():
                     os.environ.setdefault(k.strip(), v.strip())
 
 _load_env()
+# Already set above via os.getenv, but keeping the fallback logic safe
 TMDB_API_KEY    = TMDB_API_KEY    or os.getenv("TMDB_API_KEY", "")
 TMDB_READ_TOKEN = TMDB_READ_TOKEN or os.getenv("TMDB_READ_TOKEN", "")
 

@@ -190,6 +190,7 @@ def start_webapp(open_browser: bool = True):
     try:
         _webapp_proc = subprocess.Popen(
             ["npm", "run", "dev"],
+            # ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", os.environ.get("PORT", "8080")],
             cwd=str(BASE),
             shell=True,      # required on Windows for npm
             env={**os.environ},
@@ -357,7 +358,8 @@ Examples:
         info(f"Linkvertise        : {'skipped' if args.skip_lv or args.web_only else 'smart (runs only when new rows detected)'}")
         print()
 
-    start_webapp(open_browser=not args.no_browser)
+    if not args.once:
+        start_webapp(open_browser=not args.no_browser)
 
     if args.web_only:
         info("--web-only mode. Press Ctrl+C to stop.")

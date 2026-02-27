@@ -36,7 +36,7 @@ def log(msg="", **kwargs):
 # ─────────────────────────────────────────────────────────────────────────────
 #  CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
-USER_ID      = "738317"
+USER_ID      = os.getenv("LINKVERTISE_USER_ID", "738317")
 
 BASE_DIR     = Path(__file__).parent
 SOURCE_EXCEL = BASE_DIR / "cineby_content.xlsx"
