@@ -216,7 +216,7 @@ function switchTab(tabKey) {
   activeTab = tabKey;
   currentFilter = 'all';
   currentPage = 1;
-  sortSelect.value = 'default';
+  sortSelect.value = 'popularity';
   currentSort = 'default';
   searchInput.value = '';
   searchClear.classList.remove('visible');
@@ -321,7 +321,7 @@ window.resetFilters = function () {
   currentFilter = 'all';
   currentPage = 1;
   currentSort = 'default';
-  sortSelect.value = 'default';
+  sortSelect.value = 'popularity';
   searchInput.value = '';
   searchClear.classList.remove('visible');
   document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('active'));
