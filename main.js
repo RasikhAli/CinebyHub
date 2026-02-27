@@ -38,7 +38,7 @@ const TAB_HEROES = {
 let db = {};                // { tabKey: [item, ...] }
 let activeTab = 'movies';
 let currentFilter = 'all';
-let currentSort = 'default';
+let currentSort = 'popularity';
 let currentPage = 1;
 let isListView = false;
 let filteredCache = [];    // cached filtered list for current tab
@@ -217,7 +217,7 @@ function switchTab(tabKey) {
   currentFilter = 'all';
   currentPage = 1;
   sortSelect.value = 'popularity';
-  currentSort = 'default';
+  currentSort = 'popularity';
   searchInput.value = '';
   searchClear.classList.remove('visible');
 
@@ -320,7 +320,7 @@ function applyFilter() {
 window.resetFilters = function () {
   currentFilter = 'all';
   currentPage = 1;
-  currentSort = 'default';
+  currentSort = 'popularity';
   sortSelect.value = 'popularity';
   searchInput.value = '';
   searchClear.classList.remove('visible');
