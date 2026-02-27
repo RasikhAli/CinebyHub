@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 */12 * * *' # Every 12 hours
+    - cron: '0 19 * * *' # Every 12:00 AM PKT (19:00 UTC)
   workflow_dispatch:      # Manual trigger
 
 permissions:
