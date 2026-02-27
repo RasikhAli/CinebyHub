@@ -45,10 +45,10 @@ TMDB_READ_TOKEN = TMDB_READ_TOKEN or os.getenv("TMDB_READ_TOKEN", "")
 
 # How many pages to fetch per endpoint (TMDB caps at 500 pages, 20 items/page)
 # Set to None to fetch ALL available pages (may take a while)
-MAX_PAGES_MOVIES    = None   # None = fetch ALL  |  e.g. 50 = first 1000 movies
-MAX_PAGES_TV        = None   # None = fetch ALL
-MAX_PAGES_ANIME     = None   # None = fetch ALL
-MAX_PAGES_CHANNELS  = 10     # TMDB networks list is small, 10 is usually enough
+MAX_PAGES_MOVIES    = 2500 # Note: TMDB caps each single search at 500 pages.
+MAX_PAGES_TV        = 2500 # Our slicing logic allows us to exceed this total.
+MAX_PAGES_ANIME     = 2500
+MAX_PAGES_CHANNELS  = 10
 
 OUTPUT_FILE         = "cineby_content.xlsx"
 REQUEST_DELAY       = 0.25   # seconds between API calls (respect rate limits)
@@ -145,6 +145,18 @@ class TMDBClient:
 
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+        
+        # Connection Test
+        try:
+            test_resp = self.session.get(f"{BASE_URL}/movie/popular", params={**self.params, "page": 1}, timeout=10)
+            if test_resp.status_code == 200:
+                print(f"[✓] Connection Verified: TMDB API is active and credentials are valid.")
+            else:
+                print(f"[!] Warning: Test connection returned status {test_resp.status_code}")
+                if test_resp.status_code == 401:
+                    print("    (Unauthorized! Your API key/token is likely invalid)")
+        except Exception as e:
+            print(f"[!] Warning: Could not verify connection: {e}")
 
     def get(self, endpoint, extra_params=None):
         params = {**self.params}
@@ -162,6 +174,10 @@ class TMDBClient:
                 resp.raise_for_status()
                 return resp.json()
             except requests.RequestException as e:
+                if resp.status_code == 401:
+                    print(f"\n[!] 401 Unauthorized Error — Your TMDB credentials are invalid.")
+                    print("    Please check your .env file or run with fresh credentials.")
+                    sys.exit(1)
                 if attempt == 2:
                     print(f"\n[!] Request failed after 3 attempts: {e}")
                     return None
@@ -174,9 +190,16 @@ class TMDBClient:
         page = 1
         total_pages = 1
 
+        if max_pages and max_pages > 500:
+            # We don't warning here because we handle it via loops,
+            # but per TMDB docs, any page > 500 returns 0 results.
+            pass
+
         with tqdm(desc=desc, unit=" pages", dynamic_ncols=True) as pbar:
             while page <= total_pages:
                 if max_pages and page > max_pages:
+                    break
+                if page > 500: # TMDB API HARD LIMIT
                     break
                 data = self.get(endpoint, {**(params or {}), "page": page})
                 if not data:
@@ -238,11 +261,10 @@ def load_existing_rows(output_path, sheet_name, id_col="TMDB ID"):
         return [], set()
 
 
-def fetch_incremental(client, endpoint, params, existing_ids, max_pages, desc):
+def fetch_incremental(client, endpoint, params, existing_ids, max_pages, desc, stop_early=True):
     """
-    Like fetch_all_pages but stops early once a full page of results
-    contains only IDs that already exist in existing_ids.
-    This means the dataset is up-to-date from that page onward.
+    Like fetch_all_pages but stops early if stop_early=True and a full page 
+    of results contains only IDs that already exist in existing_ids.
     """
     results = []
     page = 1
@@ -272,7 +294,7 @@ def fetch_incremental(client, endpoint, params, existing_ids, max_pages, desc):
 
             # If the entire page had no new items → TMDB is sorted by
             # popularity/date so older items follow — safe to stop here.
-            if len(new_on_page) == 0 and page > 1:
+            if stop_early and len(new_on_page) == 0 and page > 1:
                 pbar.set_postfix({"status": "up-to-date ✓", "new": len(results)})
                 break
 
@@ -644,7 +666,7 @@ def main():
             print("  (No existing file found — running full fetch)")
         existing_movies = existing_tv = existing_anime = existing_animov = existing_ch = []
         ex_movie_ids = ex_tv_ids = ex_anime_ids = ex_animov_ids = ex_ch_ids = set()
-        fetch_fn = lambda client, ep, params, ex_ids, mp, desc: \
+        fetch_fn = lambda client, ep, params, ex_ids, mp, desc, stop_early=True: \
             client.fetch_all_pages(ep, params=params, max_pages=mp, desc=desc)
 
     # ── 1. MOVIES ─────────────────────────────────────────────────────────────────────────────
@@ -666,31 +688,45 @@ def main():
     # TMDB caps every single query at 500 pages. To get more, we must split 
     # requests by region, language, or year.
     slices = [
-        ("IN", "hi", "Hindi / Bollywood"),
-        ("IN", "te", "Telugu / Tollywood"),
-        ("IN", "ta", "Tamil / Kollywood"),
-        ("KR", "ko", "Korean / K-Drama Movies"),
-        ("JP", "ja", "Japanese / Anime-style"),
-        ("ES", "es", "Spanish / Latin"),
-        ("FR", "fr", "French"),
-        ("US", "en", "Hollywood Mainstream"),
+        # Indian Industries
+        (None, "hi", "Hindi / Bollywood"),
+        (None, "te", "Telugu / Tollywood"),
+        (None, "ta", "Tamil / Kollywood"),
+        (None, "ml", "Malayalam / Mollywood"),
+        (None, "kn", "Kannada / Sandalwood"),
+        (None, "bn", "Bengali / Dhallywood"),
+        (None, "pa", "Punjabi"),
+        # Pakistani (Lollywood)
+        ("PK", "ur", "Urdu / Lollywood / Pakistan"),
+        # Others
+        (None, "ko", "Korean / K-Drama"),
+        (None, "ja", "Japanese / Anime-style"),
+        (None, "es", "Spanish / Latin"),
+        (None, "fr", "French"),
+        (None, "pt", "Portuguese / Brazilian"),
+        (None, "zh", "Chinese / Mandarin"),
+        (None, "th", "Thai"),
+        (None, "en", "Hollywood Mainstream"),
     ]
     for region_code, lang_code, label in slices:
+        params = {
+            "sort_by": "popularity.desc",
+            "with_original_language": lang_code,
+            "language": "en-US"
+        }
+        if region_code:
+            params["region"] = region_code  # Uses 'region' (production/release) not 'watch_region' (streaming)
+            
         endpoints.append((
             "/discover/movie",
-            {
-                "sort_by": "popularity.desc",
-                "watch_region": region_code,
-                "with_original_language": lang_code,
-                "language": "en-US"
-            },
+            params,
             f"  Slice: {label}"
         ))
 
-    # 3. Yearly discovery for last 20 years (Deep archive)
+    # 3. Yearly discovery for last 75 years (Deep archive)
     import datetime
     current_year = datetime.datetime.now().year
-    for year in range(current_year, current_year - 21, -1):
+    for year in range(current_year, current_year - 76, -1):
         endpoints.append((
             "/discover/movie",
             {"sort_by": "popularity.desc", "primary_release_year": str(year), "language": "en-US"},
@@ -698,16 +734,19 @@ def main():
         ))
 
     for ep, params, desc in endpoints:
-        # We fetch up to 100 pages for each specific slice/year.
-        # This keeps the run time sane while providing massive coverage.
-        # Total pages across all slices will be well over 3000.
-        pages_to_fetch = 100 
+        # We fetch up to 500 pages for each specific slice/year.
+        # This provides massive coverage across history and regions.
+        pages_to_fetch = 500 
         
         # For the global popular/trending, we can go higher (500)
         if "global" in desc.lower() or "popular movies" in desc.lower():
             pages_to_fetch = MAX_PAGES_MOVIES or 500
             
-        items = fetch_fn(client, ep, params, ex_movie_ids, pages_to_fetch, desc)
+        # For slices and deep archives, we DISABLE stop_early to ensure we get 
+        # niche/older items even if we have the popular ones already.
+        should_stop_early = not ("slice" in desc.lower() or "archive" in desc.lower())
+        
+        items = fetch_fn(client, ep, params, ex_movie_ids, pages_to_fetch, desc, stop_early=should_stop_early)
         movie_lists.extend(items)
 
     new_movies  = dedupe(movie_lists)
@@ -732,22 +771,34 @@ def main():
 
     # Regional TV Slicing
     for region_code, lang_code, label in slices:
+        params = {
+            "sort_by": "popularity.desc",
+            "with_original_language": lang_code,
+            "language": "en-US"
+        }
+        if region_code:
+            params["region"] = region_code
+
         tv_endpoints.append((
             "/discover/tv",
-            {
-                "sort_by": "popularity.desc",
-                "watch_region": region_code,
-                "with_original_language": lang_code,
-                "language": "en-US"
-            },
+            params,
             f"  TV Slice: {label}"
         ))
 
+    # TV Yearly Discovery (Deep archive for TV - last 50 years)
+    for year in range(current_year, current_year - 51, -1):
+        tv_endpoints.append((
+            "/discover/tv",
+            {"sort_by": "popularity.desc", "first_air_date_year": str(year), "language": "en-US"},
+            f"  TV Archive: {year}"
+        ))
+
     for ep, params, desc in tv_endpoints:
-        pages_to_fetch = 100
+        pages_to_fetch = 500
         if "global" in desc.lower() or "popular tv" in desc.lower():
             pages_to_fetch = MAX_PAGES_TV or 500
-        items = fetch_fn(client, ep, params, ex_tv_ids, pages_to_fetch, desc)
+        should_stop_early = not ("slice" in desc.lower() or "archive" in desc.lower())
+        items = fetch_fn(client, ep, params, ex_tv_ids, pages_to_fetch, desc, stop_early=should_stop_early)
         tv_lists.extend(items)
 
     new_tv      = dedupe(tv_lists)
@@ -794,7 +845,7 @@ def main():
         "/discover/movie",
         {"with_genres": "16", "with_origin_country": "JP",
          "sort_by": "popularity.desc", "language": "en-US"},
-        ex_animov_ids, 50,
+        ex_animov_ids, MAX_PAGES_ANIME,
         "  Anime Movies (JP)"
     )
 
