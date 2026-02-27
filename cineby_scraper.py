@@ -187,7 +187,8 @@ class TMDBClient:
 
                 total_pages = min(
                     data.get("total_pages", 1),
-                    500  # TMDB hard cap
+                    500  # TMDB hard cap per query. 
+                         # We bypass this by 'slicing' (yearly/regional queries).
                 )
                 pbar.total = min(total_pages, max_pages or total_pages)
                 pbar.set_postfix({"items": len(results), "total_pages": total_pages})
@@ -650,19 +651,63 @@ def main():
     print("\n🎬  Fetching Movies...")
     movie_lists = []
 
+    # 1. Base lists
     endpoints = [
-        ("/discover/movie", {"sort_by": "popularity.desc", "language": "en-US"},
-         "  Popular movies"),
-        ("/movie/top_rated", {"language": "en-US"},
-         "  Top rated movies"),
-        ("/movie/now_playing", {"language": "en-US"},
-         "  Now playing"),
-        ("/movie/upcoming", {"language": "en-US"},
-         "  Upcoming movies"),
+        ("/trending/movie/day", {"language": "en-US"}, "  Trending movies (today)"),
+        ("/trending/movie/week", {"language": "en-US"}, "  Trending movies (week)"),
+        ("/movie/popular", {"language": "en-US"}, "  Popular movies"),
+        ("/movie/top_rated", {"language": "en-US"}, "  Top rated movie hall of fame"),
+        ("/movie/now_playing", {"language": "en-US", "region": "US"}, "  Now playing (US)"),
+        ("/movie/now_playing", {"language": "en-US", "region": "IN"}, "  Now playing (IN)"),
+        ("/movie/upcoming", {"language": "en-US"}, "  Upcoming global"),
     ]
 
+    # 2. Regional & Language Slicing (The secret to getting >10,000 movies)
+    # TMDB caps every single query at 500 pages. To get more, we must split 
+    # requests by region, language, or year.
+    slices = [
+        ("IN", "hi", "Hindi / Bollywood"),
+        ("IN", "te", "Telugu / Tollywood"),
+        ("IN", "ta", "Tamil / Kollywood"),
+        ("KR", "ko", "Korean / K-Drama Movies"),
+        ("JP", "ja", "Japanese / Anime-style"),
+        ("ES", "es", "Spanish / Latin"),
+        ("FR", "fr", "French"),
+        ("US", "en", "Hollywood Mainstream"),
+    ]
+    for region_code, lang_code, label in slices:
+        endpoints.append((
+            "/discover/movie",
+            {
+                "sort_by": "popularity.desc",
+                "watch_region": region_code,
+                "with_original_language": lang_code,
+                "language": "en-US"
+            },
+            f"  Slice: {label}"
+        ))
+
+    # 3. Yearly discovery for last 20 years (Deep archive)
+    import datetime
+    current_year = datetime.datetime.now().year
+    for year in range(current_year, current_year - 21, -1):
+        endpoints.append((
+            "/discover/movie",
+            {"sort_by": "popularity.desc", "primary_release_year": str(year), "language": "en-US"},
+            f"  Deep Archive: {year}"
+        ))
+
     for ep, params, desc in endpoints:
-        items = fetch_fn(client, ep, params, ex_movie_ids, MAX_PAGES_MOVIES, desc)
+        # We fetch up to 100 pages for each specific slice/year.
+        # This keeps the run time sane while providing massive coverage.
+        # Total pages across all slices will be well over 3000.
+        pages_to_fetch = 100 
+        
+        # For the global popular/trending, we can go higher (500)
+        if "global" in desc.lower() or "popular movies" in desc.lower():
+            pages_to_fetch = MAX_PAGES_MOVIES or 500
+            
+        items = fetch_fn(client, ep, params, ex_movie_ids, pages_to_fetch, desc)
         movie_lists.extend(items)
 
     new_movies  = dedupe(movie_lists)
@@ -678,16 +723,31 @@ def main():
     tv_lists = []
 
     tv_endpoints = [
-        ("/discover/tv", {"sort_by": "popularity.desc", "language": "en-US"},
-         "  Popular TV shows"),
-        ("/tv/top_rated", {"language": "en-US"},
-         "  Top rated TV"),
-        ("/tv/on_the_air", {"language": "en-US"},
-         "  On the air"),
+        ("/trending/tv/day", {"language": "en-US"}, "  Trending TV (today)"),
+        ("/trending/tv/week", {"language": "en-US"}, "  Trending TV (week)"),
+        ("/tv/popular", {"language": "en-US"}, "  Popular TV series"),
+        ("/tv/top_rated", {"language": "en-US"}, "  Top rated TV series"),
+        ("/tv/on_the_air", {"language": "en-US"}, "  On the air"),
     ]
 
+    # Regional TV Slicing
+    for region_code, lang_code, label in slices:
+        tv_endpoints.append((
+            "/discover/tv",
+            {
+                "sort_by": "popularity.desc",
+                "watch_region": region_code,
+                "with_original_language": lang_code,
+                "language": "en-US"
+            },
+            f"  TV Slice: {label}"
+        ))
+
     for ep, params, desc in tv_endpoints:
-        items = fetch_fn(client, ep, params, ex_tv_ids, MAX_PAGES_TV, desc)
+        pages_to_fetch = 100
+        if "global" in desc.lower() or "popular tv" in desc.lower():
+            pages_to_fetch = MAX_PAGES_TV or 500
+        items = fetch_fn(client, ep, params, ex_tv_ids, pages_to_fetch, desc)
         tv_lists.extend(items)
 
     new_tv      = dedupe(tv_lists)
