@@ -637,16 +637,21 @@ def write_summary_sheet(wb, stats):
 def main():
     print("=" * 65)
     print("  🎬 Cineby.gd Content Scraper — Powered by TMDB API")
-    print("=" * 65)
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), OUTPUT_FILE)
-    mode_label = "INCREMENTAL (add new only)" if INCREMENTAL_UPDATE else "FULL (overwrite)"
-    print(f"  Output file : {output_path}")
-    print(f"  Run mode    : {mode_label}")
-    print(f"  Max pages   : Movies={MAX_PAGES_MOVIES or 'ALL'}, "
-          f"TV={MAX_PAGES_TV or 'ALL'}, Anime={MAX_PAGES_ANIME or 'ALL'}")
+    print(f"  Max pages   : Movies={MAX_PAGES_MOVIES or '500'}, "
+          f"TV={MAX_PAGES_TV or '500'}, Anime={MAX_PAGES_ANIME or '500'}")
+    print("  Mode        : GitHub-Action Friendly (Rotating Archives)")
     print("=" * 65)
 
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), OUTPUT_FILE)
     client = TMDBClient()
+
+    # Determine a "Seed" based on the current day to pick which archive chunk to scrape
+    # This ensures that every day we scrape a different part of history.
+    import random
+    now = datetime.now()
+    day_of_year = now.timetuple().tm_yday
+    current_year = now.year
+    random.seed(day_of_year)
 
     # ── Decide fetch strategy ──────────────────────────────────────────────────
     if INCREMENTAL_UPDATE and os.path.exists(output_path):
@@ -687,7 +692,8 @@ def main():
     # 2. Regional & Language Slicing (The secret to getting >10,000 movies)
     # TMDB caps every single query at 500 pages. To get more, we must split 
     # requests by region, language, or year.
-    slices = [
+    # 2. Regional & Language Sourcing
+    all_slices = [
         # Indian Industries
         (None, "hi", "Hindi / Bollywood"),
         (None, "te", "Telugu / Tollywood"),
@@ -708,14 +714,17 @@ def main():
         (None, "th", "Thai"),
         (None, "en", "Hollywood Mainstream"),
     ]
-    for region_code, lang_code, label in slices:
+    # Pick 4 random regional slices to deep-scan this run
+    active_slices = random.sample(all_slices, min(4, len(all_slices)))
+    
+    for region_code, lang_code, label in active_slices:
         params = {
             "sort_by": "popularity.desc",
             "with_original_language": lang_code,
             "language": "en-US"
         }
         if region_code:
-            params["region"] = region_code  # Uses 'region' (production/release) not 'watch_region' (streaming)
+            params["region"] = region_code
             
         endpoints.append((
             "/discover/movie",
@@ -723,10 +732,12 @@ def main():
             f"  Slice: {label}"
         ))
 
-    # 3. Yearly discovery for last 75 years (Deep archive)
-    import datetime
-    current_year = datetime.datetime.now().year
-    for year in range(current_year, current_year - 76, -1):
+    # 3. Yearly discovery (Deep archive rotation)
+    # We fetch 10 random years from the last 75 years each run.
+    all_years = list(range(current_year - 1, current_year - 76, -1))
+    active_years = [current_year] + random.sample(all_years, 8) # Always current year + 8 random others
+    
+    for year in active_years:
         endpoints.append((
             "/discover/movie",
             {"sort_by": "popularity.desc", "primary_release_year": str(year), "language": "en-US"},
@@ -734,17 +745,12 @@ def main():
         ))
 
     for ep, params, desc in endpoints:
-        # We fetch up to 500 pages for each specific slice/year.
-        # This provides massive coverage across history and regions.
         pages_to_fetch = 500 
         
-        # For the global popular/trending, we can go higher (500)
-        if "global" in desc.lower() or "popular movies" in desc.lower():
-            pages_to_fetch = MAX_PAGES_MOVIES or 500
-            
-        # For slices and deep archives, we DISABLE stop_early to ensure we get 
-        # niche/older items even if we have the popular ones already.
-        should_stop_early = not ("slice" in desc.lower() or "archive" in desc.lower())
+        # Smart detection of when to stop
+        # Always scan trending/popular deeply but maybe allow shortcuts if we have data
+        is_fresh_list = any(x in desc.lower() for x in ["trending", "popular", "now playing", "upcoming", str(current_year)])
+        should_stop_early = is_fresh_list # trending lists update often, check them fully
         
         items = fetch_fn(client, ep, params, ex_movie_ids, pages_to_fetch, desc, stop_early=should_stop_early)
         movie_lists.extend(items)
@@ -785,8 +791,12 @@ def main():
             f"  TV Slice: {label}"
         ))
 
-    # TV Yearly Discovery (Deep archive for TV - last 50 years)
-    for year in range(current_year, current_year - 51, -1):
+    # TV Yearly Discovery (Deep archive rotation - last 50 years)
+    # We fetch 5 random years each run for TV to save time.
+    all_tv_years = list(range(current_year - 1, current_year - 51, -1))
+    active_tv_years = [current_year] + random.sample(all_tv_years, 5)
+
+    for year in active_tv_years:
         tv_endpoints.append((
             "/discover/tv",
             {"sort_by": "popularity.desc", "first_air_date_year": str(year), "language": "en-US"},
