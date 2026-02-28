@@ -174,10 +174,12 @@ class TMDBClient:
                 resp.raise_for_status()
                 return resp.json()
             except requests.RequestException as e:
-                if resp.status_code == 401:
+                # Check for 401 Unauthorized via the exception's response object
+                if e.response is not None and e.response.status_code == 401:
                     print(f"\n[!] 401 Unauthorized Error — Your TMDB credentials are invalid.")
                     print("    Please check your .env file or run with fresh credentials.")
                     sys.exit(1)
+                
                 if attempt == 2:
                     print(f"\n[!] Request failed after 3 attempts: {e}")
                     return None
@@ -776,7 +778,7 @@ def main():
     ]
 
     # Regional TV Slicing
-    for region_code, lang_code, label in slices:
+    for region_code, lang_code, label in active_slices:
         params = {
             "sort_by": "popularity.desc",
             "with_original_language": lang_code,
