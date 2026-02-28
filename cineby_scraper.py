@@ -645,6 +645,7 @@ def main():
     print("=" * 65)
 
     output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), OUTPUT_FILE)
+    mode_label = "INCREMENTAL (add new only)" if INCREMENTAL_UPDATE else "FULL (overwrite)"
     client = TMDBClient()
 
     # Determine a "Seed" based on the current day to pick which archive chunk to scrape
