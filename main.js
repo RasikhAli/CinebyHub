@@ -376,6 +376,92 @@ paginationPrev.onclick = () => { currentPage--; renderPage(); window.scrollTo({ 
 paginationNext.onclick = () => { currentPage++; renderPage(); window.scrollTo({ top: document.getElementById('toolbar').offsetTop - 70, behavior: 'smooth' }); };
 
 // ══════════════════════════════════════════════════════════
+//  LINKVERTISE API (CLIENT-SIDE, ON-DEMAND)
+// ══════════════════════════════════════════════════════════
+const LV_USER_ID = '738317';
+const LV_API_BASE = 'https://api.linkvertise.com/api/v1';
+
+// Simple in-memory cache + localStorage persistence
+const lvCache = JSON.parse(localStorage.getItem('lv_cache') || '{}');
+
+function saveLvCache() {
+  localStorage.setItem('lv_cache', JSON.stringify(lvCache));
+}
+
+async function generateLinkvertiseLink(targetUrl) {
+  // Check cache first
+  if (lvCache[targetUrl]) {
+    console.log('  ↩  Cache hit for:', targetUrl.substring(0, 30) + '...');
+    return lvCache[targetUrl];
+  }
+  
+  try {
+    // Linkvertise API endpoint for creating links
+    const apiUrl = `${LV_API_BASE}/link/${LV_USER_ID}/target`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        target: targetUrl,
+        
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // The API returns the link in different formats, extract the proper URL
+    let lvUrl = data.data?.link?.shorturl || data.data?.link?.url || data.link?.shorturl;
+    
+    if (!lvUrl) {
+      // Try alternative response format
+      lvUrl = data.shorturl || data.url;
+    }
+    
+    if (lvUrl) {
+      // Cache the result
+      lvCache[targetUrl] = lvUrl;
+      saveLvCache();
+      console.log('  ✅ Generated LV link:', lvUrl);
+      return lvUrl;
+    }
+    
+    throw new Error('No link in response');
+  } catch (error) {
+    console.error('Error generating Linkvertise link:', error);
+    // Fallback to direct URL if API fails
+    return targetUrl;
+  }
+}
+
+function openWatchLink(item) {
+  // Determine the target URL to wrap
+  const targetUrl = item.vidkingUrl || item.homepage;
+  
+  if (!targetUrl) {
+    console.error('No watch URL available');
+    return;
+  }
+  
+  // If we already have a Linkvertise link cached, use it directly
+  if (lvCache[targetUrl]) {
+    window.open(lvCache[targetUrl], '_blank');
+    return;
+  }
+  
+  // Generate Linkvertise link on-the-fly
+  generateLinkvertiseLink(targetUrl).then(lvUrl => {
+    window.open(lvUrl, '_blank');
+  });
+}
+
+// ══════════════════════════════════════════════════════════
 //  CARD BUILDER
 // ══════════════════════════════════════════════════════════
 const FALLBACK = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=60';
@@ -408,11 +494,11 @@ function buildCard(item, i) {
         <p class="card-genre-text">${esc(item.genres.slice(0, 4).join(' · '))}</p>
         ${item.overview ? `<p class="card-overview">${esc(item.overview.slice(0, 140))}…</p>` : ''}
         <div class="card-actions">
-          ${item.watchUrl ? `<a href="${esc(item.watchUrl)}" target="_blank" rel="noopener" class="card-btn-watch" onclick="event.stopPropagation()">
+          <button class="card-btn-watch" onclick="event.stopPropagation(); openWatchLink(item);">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Watch Now
-          </a>` : ''}
-          <button class="card-btn-info">Details</button>
+          </button>
+          <button class="card-btn-info" onclick="event.stopPropagation(); openModal(item);">Details</button>
         </div>
       </div>`;
   } else {
@@ -421,7 +507,7 @@ function buildCard(item, i) {
         <img class="card-img" src="${esc(poster)}" alt="${esc(item.title)}" loading="lazy" onerror="this.src='${FALLBACK}'">
         <span class="card-badge card-badge-${item.tabKey}">${badgeLabel}</span>
         ${ratingHtml ? `<div class="card-rating-badge">${ratingHtml}</div>` : ''}
-        <div class="card-overlay">
+        <div class="card-overlay" onclick="openWatchLink(item)">
           <div class="card-overlay-content">
             <div class="card-play-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -451,11 +537,11 @@ function openModal(item) {
   const yearStr = item.date ? item.date.slice(0, 4) : '';
   const colors = TAB_COLORS[item.tabKey] || TAB_COLORS['movies'];
 
-  const watchBtnHtml = item.watchUrl
-    ? `<a href="${esc(item.watchUrl)}" target="_blank" rel="noopener" class="modal-watch-btn">
+  const watchBtnHtml = item.watchUrl || item.vidkingUrl || item.homepage
+    ? `<button onclick="openWatchLink(item)" class="modal-watch-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Watch Now
-       </a>`
+       </button>`
     : `<span class="modal-no-link">No stream link yet</span>`;
 
   const cinebyBtnHtml = item.cinebyUrl

@@ -269,25 +269,22 @@ def run_pipeline_cycle(args) -> None:
 
     if has_new or args.force_lv:
         if args.force_lv and not has_new:
-            info("--force-lv flag set — running Linkvertise even with no new rows.")
+            info("--force-lv flag set — skipping (no longer needed).")
         else:
             total_new_rows = sum(
                 max(0, new_counts.get(s, 0) - old_counts.get(s, 0))
                 for s in new_counts
             )
-            info(f"  🆕  {total_new_rows:,} new rows detected → running Linkvertise generator…")
-
-        lv_ok = run_script("linkvertise_api_lite.py", "Linkvertise Link Generator")
-
-        # Save updated counts regardless of LV success
+            info(f"  🆕  {total_new_rows:,} new rows detected!")
+        
+        # Linkvertise links are now generated on-the-fly in the frontend!
+        # No need to run linkvertise_api_lite.py anymore.
+        success("Skipping Linkvertise generator (now handled in frontend).")
+        
+        # Save updated counts
         _save_row_counts(new_counts)
-
-        if lv_ok:
-            success("All new links generated successfully.")
-        else:
-            warn("Linkvertise generator had errors. Row counts saved anyway.")
     else:
-        success("No new content rows found — skipping Linkvertise generator. ✓")
+        success("No new content rows found.")
         # Still update the baseline (counts haven't changed, but timestamp matters)
         _save_row_counts(new_counts)
 
