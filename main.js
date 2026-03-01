@@ -440,7 +440,10 @@ async function generateLinkvertiseLink(targetUrl) {
   }
 }
 
-function openWatchLink(item) {
+function openWatchLink(btn) {
+  // Get item data from the button's data attribute
+  const item = JSON.parse(btn.dataset.item || '{}');
+  
   // Determine the target URL to wrap
   const targetUrl = item.vidkingUrl || item.homepage;
   
@@ -494,7 +497,7 @@ function buildCard(item, i) {
         <p class="card-genre-text">${esc(item.genres.slice(0, 4).join(' · '))}</p>
         ${item.overview ? `<p class="card-overview">${esc(item.overview.slice(0, 140))}…</p>` : ''}
         <div class="card-actions">
-          <button class="card-btn-watch" onclick="event.stopPropagation(); openWatchLink(item);">
+          <button class="card-btn-watch" data-item='${JSON.stringify(item).replace(/'/g, "&#39;")}' onclick="event.stopPropagation(); openWatchLink(this);">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Watch Now
           </button>
@@ -507,7 +510,7 @@ function buildCard(item, i) {
         <img class="card-img" src="${esc(poster)}" alt="${esc(item.title)}" loading="lazy" onerror="this.src='${FALLBACK}'">
         <span class="card-badge card-badge-${item.tabKey}">${badgeLabel}</span>
         ${ratingHtml ? `<div class="card-rating-badge">${ratingHtml}</div>` : ''}
-        <div class="card-overlay" onclick="openWatchLink(item)">
+        <div class="card-overlay" data-item='${JSON.stringify(item).replace(/'/g, "&#39;")}' onclick="event.stopPropagation(); openWatchLink(this);">
           <div class="card-overlay-content">
             <div class="card-play-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -538,7 +541,7 @@ function openModal(item) {
   const colors = TAB_COLORS[item.tabKey] || TAB_COLORS['movies'];
 
   const watchBtnHtml = item.watchUrl || item.vidkingUrl || item.homepage
-    ? `<button onclick="openWatchLink(item)" class="modal-watch-btn">
+    ? `<button data-item='${JSON.stringify(item).replace(/'/g, "&#39;")}' onclick="openWatchLink(this)" class="modal-watch-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Watch Now
        </button>`
