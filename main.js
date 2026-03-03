@@ -108,8 +108,8 @@ async function loadData() {
   let buf = null;
   let usedFile = '';
 
-  // Add cache-busting query parameter
-  const cacheBust = `?v=${Date.now()}`;
+  // Add cache-busting query parameter - force no cache
+  const cacheBust = `&t=${Date.now()}`;
 
   for (const file of files) {
     try {
