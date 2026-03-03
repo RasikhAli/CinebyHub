@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -78,11 +76,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          # Install Git LFS and push LFS objects
-          git lfs install
-          git lfs track "*.xlsx" "*.csv"
+          # Push all files directly (no LFS needed)
           git add cineby_content.xlsx public/cineby_content.xlsx public/_checkpoints/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update content and checkpoints [skip ci]" && git lfs push origin main && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update content and checkpoints [skip ci]" && git push)
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
