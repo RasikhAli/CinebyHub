@@ -63,6 +63,9 @@ jobs:
       - name: Build Vite App
         run: npm run build
 
+      - name: Copy Excel file to public
+        run: cp cineby_content.xlsx public/cineby_content.xlsx
+
       - name: Save Checkpoints and Data Cache
         uses: actions/cache/save@v4
         with:
