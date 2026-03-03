@@ -108,10 +108,13 @@ async function loadData() {
   let buf = null;
   let usedFile = '';
 
+  // Add cache-busting query parameter
+  const cacheBust = `?v=${Date.now()}`;
+
   for (const file of files) {
     try {
       loaderSub.textContent = `Trying ${file}…`;
-      const res = await fetch(file);
+      const res = await fetch(file + cacheBust);
       if (!res.ok) continue;
       buf = await res.arrayBuffer();
       usedFile = file;
@@ -463,6 +466,9 @@ function openWatchLink(btn) {
     window.open(lvUrl, '_blank');
   });
 }
+
+// Make openWatchLink available globally for onclick handlers
+window.openWatchLink = openWatchLink;
 
 // ══════════════════════════════════════════════════════════
 //  CARD BUILDER
