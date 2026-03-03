@@ -379,10 +379,8 @@ paginationPrev.onclick = () => { currentPage--; renderPage(); window.scrollTo({ 
 paginationNext.onclick = () => { currentPage++; renderPage(); window.scrollTo({ top: document.getElementById('toolbar').offsetTop - 70, behavior: 'smooth' }); };
 
 // ══════════════════════════════════════════════════════════
-//  LINKVERTISE API (CLIENT-SIDE, ON-DEMAND)
+//  LINKVERTISE LINK HANDLING
 // ══════════════════════════════════════════════════════════
-const LV_USER_ID = '738317';
-const LV_API_BASE = 'https://api.linkvertise.com/api/v1';
 
 // Simple in-memory cache + localStorage persistence
 const lvCache = JSON.parse(localStorage.getItem('lv_cache') || '{}');
@@ -391,56 +389,23 @@ function saveLvCache() {
   localStorage.setItem('lv_cache', JSON.stringify(lvCache));
 }
 
-async function generateLinkvertiseLink(targetUrl) {
+function generateLinkvertiseLink(targetUrl) {
   // Check cache first
   if (lvCache[targetUrl]) {
     console.log('  ↩  Cache hit for:', targetUrl.substring(0, 30) + '...');
     return lvCache[targetUrl];
   }
   
-  try {
-    // Linkvertise API endpoint for creating links
-    const apiUrl = `${LV_API_BASE}/link/${LV_USER_ID}/target`;
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        target: targetUrl,
-        
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // The API returns the link in different formats, extract the proper URL
-    let lvUrl = data.data?.link?.shorturl || data.data?.link?.url || data.link?.shorturl;
-    
-    if (!lvUrl) {
-      // Try alternative response format
-      lvUrl = data.shorturl || data.url;
-    }
-    
-    if (lvUrl) {
-      // Cache the result
-      lvCache[targetUrl] = lvUrl;
-      saveLvCache();
-      console.log('  ✅ Generated LV link:', lvUrl);
-      return lvUrl;
-    }
-    
-    throw new Error('No link in response');
-  } catch (error) {
-    console.error('Error generating Linkvertise link:', error);
-    // Fallback to direct URL if API fails
-    return targetUrl;
-  }
+  // Note: Linkvertise API cannot be called from browser due to CORS restrictions.
+  // The API call is skipped and we directly use the target URL.
+  // In production, Linkvertise links should be pre-generated on the server side.
+  console.log('  ⚠️  CORS blocked - using direct URL (Linkvertise API unavailable from browser)');
+  
+  // Cache the direct URL as a fallback
+  lvCache[targetUrl] = targetUrl;
+  saveLvCache();
+  
+  return targetUrl;
 }
 
 function openWatchLink(btn) {
@@ -461,10 +426,9 @@ function openWatchLink(btn) {
     return;
   }
   
-  // Generate Linkvertise link on-the-fly
-  generateLinkvertiseLink(targetUrl).then(lvUrl => {
-    window.open(lvUrl, '_blank');
-  });
+  // Get the watch URL (synchronous now)
+  const watchUrl = generateLinkvertiseLink(targetUrl);
+  window.open(watchUrl, '_blank');
 }
 
 // Make openWatchLink available globally for onclick handlers
